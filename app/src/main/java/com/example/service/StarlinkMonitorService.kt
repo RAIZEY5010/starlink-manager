@@ -81,12 +81,13 @@ class StarlinkMonitorService : Service() {
         scope.launch {
             while (isActive) {
                 scanNetwork()
-                
+
                 // Refresh notification manually to update time-based stats dynamically
                 val currentDevices = db.deviceDao().getAll().first()
                 updateForegroundNotification(currentDevices)
-                
-                delay(60000) // فحص الشبكة كل دقيقة
+
+                val intervalMs = com.example.util.AppPrefs.getScanIntervalSeconds(applicationContext) * 1000L
+                delay(intervalMs)
             }
         }
     }
@@ -158,11 +159,13 @@ class StarlinkMonitorService : Service() {
         if (ipAddress == 0) return
 
         val ipString = String.format("%d.%d.%d", ipAddress and 0xff, ipAddress shr 8 and 0xff, ipAddress shr 16 and 0xff)
-        val jobs = (2..60).map { i ->
-            scope.async {
+        // فحص الشبكة كاملة (2-254) بدل نطاق ضيق، عشان ما تفوتنا أجهزة متصلة بعناوين IP بعيدة.
+        val scanDispatcher = Dispatchers.IO.limitedParallelism(32)
+        val jobs = (2..254).map { i ->
+            scope.async(scanDispatcher) {
                 val testIp = "$ipString.$i"
                 try {
-                    val process = Runtime.getRuntime().exec("ping -c 1 -W 1 $testIp")
+                    val process = Runtime.getRuntime().exec(arrayOf("ping", "-c", "1", "-W", "1", testIp))
                     val exitVal = process.waitFor()
                     if (exitVal == 0) {
                         val inet = InetAddress.getByName(testIp)
@@ -192,42 +195,29 @@ class StarlinkMonitorService : Service() {
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
         }
-        
-        val intent1 = Intent(context, NotificationReceiver::class.java).apply {
-            action = "ADD_TIME"
-            putExtra("DEVICE_IP", ip)
-            putExtra("HOURS", 1)
-            putExtra("NOTIF_ID", notifId)
-        }
-        val pIntent1 = PendingIntent.getBroadcast(context, 1 + notifId, intent1, flags)
 
-        val intent2 = Intent(context, NotificationReceiver::class.java).apply {
-            action = "ADD_TIME"
-            putExtra("DEVICE_IP", ip)
-            putExtra("HOURS", 2)
-            putExtra("NOTIF_ID", notifId)
-        }
-        val pIntent2 = PendingIntent.getBroadcast(context, 2 + notifId, intent2, flags)
-        
-        val intent3 = Intent(context, NotificationReceiver::class.java).apply {
-            action = "ADD_TIME"
-            putExtra("DEVICE_IP", ip)
-            putExtra("HOURS", 3)
-            putExtra("NOTIF_ID", notifId)
-        }
-        val pIntent3 = PendingIntent.getBroadcast(context, 3 + notifId, intent3, flags)
-
-        val notification = NotificationCompat.Builder(context, "starlink_channel")
+        val quickTimes = com.example.util.AppPrefs.getQuickTimes(context).take(3)
+        val notifBuilder = NotificationCompat.Builder(context, "starlink_channel")
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
             .setContentTitle("جهاز جديد متصل!")
             .setContentText("IP: $ip ($name)")
-            .addAction(0, "ساعة", pIntent1)
-            .addAction(0, "ساعتين", pIntent2)
-            .addAction(0, "3 ساعات", pIntent3)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
-            .build()
-            
-        try { NotificationManagerCompat.from(context).notify(notifId, notification) } catch (e: Exception) {}
+
+        quickTimes.forEachIndexed { index, h ->
+            val intent = Intent(context, NotificationReceiver::class.java).apply {
+                action = "ADD_TIME"
+                putExtra("DEVICE_IP", ip)
+                putExtra("HOURS", h.toFloat())
+                putExtra("NOTIF_ID", notifId)
+            }
+            val pIntent = PendingIntent.getBroadcast(context, index + 1 + notifId, intent, flags)
+            notifBuilder.addAction(0, com.example.util.AppPrefs.formatHoursLabel(h), pIntent)
+        }
+
+        try { NotificationManagerCompat.from(context).notify(notifId, notifBuilder.build()) } catch (e: Exception) {}
+
+        // إشعار عائم فوق أي تطبيق (لو مفعّل والإذن موجود)
+        com.example.util.OverlayHelper.showNewDeviceOverlay(context, ip, name)
     }
 }

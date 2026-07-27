@@ -14,7 +14,7 @@ class NotificationReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action
         val ip = intent.getStringExtra("DEVICE_IP") ?: return
-        val hours = intent.getIntExtra("HOURS", 0)
+        val hours = intent.getFloatExtra("HOURS", 0f).toDouble()
         val notifId = intent.getIntExtra("NOTIF_ID", 0)
 
         if (action == "ADD_TIME" && hours > 0) {
@@ -22,7 +22,7 @@ class NotificationReceiver : BroadcastReceiver() {
             val pendingResult = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
                 val device = db.deviceDao().getByIp(ip)
-                val additionalMillis = hours * 3600000L
+                val additionalMillis = (hours * 3600000.0).toLong()
                 if (device != null) {
                     val newEndTime = if (device.isPaused) {
                         System.currentTimeMillis() + device.remainingWhenPaused + additionalMillis

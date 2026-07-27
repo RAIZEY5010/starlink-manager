@@ -1,8 +1,10 @@
 package com.example.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -20,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.MainViewModel
 import com.example.db.Device
+import com.example.util.AppPrefs
 import kotlinx.coroutines.delay
 
 @Composable
@@ -117,6 +120,9 @@ private fun isValidIpv4(value: String): Boolean {
 fun DeviceCard(device: Device, viewModel: MainViewModel) {
     var remainingText by remember { mutableStateOf(formatTime(device)) }
     var showRenameDialog by remember { mutableStateOf(false) }
+    var showCustomTimeDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val quickTimes = remember { AppPrefs.getQuickTimes(context) }
     
     // Auto update remaining time
     LaunchedEffect(device.endTime, device.isPaused) {
@@ -169,12 +175,12 @@ fun DeviceCard(device: Device, viewModel: MainViewModel) {
             Spacer(modifier = Modifier.height(8.dp))
             
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                Row {
-                    Button(onClick = { viewModel.addDeviceTime(device, 1) }) { Text("+1س") }
-                    Spacer(Modifier.width(4.dp))
-                    Button(onClick = { viewModel.addDeviceTime(device, 2) }) { Text("+2س") }
-                    Spacer(Modifier.width(4.dp))
-                    Button(onClick = { viewModel.addDeviceTime(device, 3) }) { Text("+3س") }
+                Row(modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState())) {
+                    quickTimes.forEach { h ->
+                        Button(onClick = { viewModel.addDeviceTime(device, h) }) { Text(AppPrefs.formatHoursLabel(h)) }
+                        Spacer(Modifier.width(4.dp))
+                    }
+                    OutlinedButton(onClick = { showCustomTimeDialog = true }) { Text("مخصص") }
                 }
                 Row {
                     IconButton(onClick = { viewModel.togglePause(device) }) {
@@ -186,6 +192,34 @@ fun DeviceCard(device: Device, viewModel: MainViewModel) {
                 }
             }
         }
+    }
+
+    if (showCustomTimeDialog) {
+        var customInput by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showCustomTimeDialog = false },
+            title = { Text("إضافة وقت مخصص") },
+            text = {
+                OutlinedTextField(
+                    value = customInput,
+                    onValueChange = { customInput = it },
+                    label = { Text("عدد الساعات (مثال: 1.5)") },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val hours = customInput.trim().replace(",", ".").toDoubleOrNull()
+                    if (hours != null && hours > 0) {
+                        viewModel.addDeviceTime(device, hours)
+                    }
+                    showCustomTimeDialog = false
+                }) { Text("إضافة") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCustomTimeDialog = false }) { Text("إلغاء") }
+            }
+        )
     }
 }
 

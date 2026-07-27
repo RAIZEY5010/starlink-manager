@@ -47,6 +47,9 @@ interface ShortcutDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(shortcut: Shortcut)
 
+    @Update
+    suspend fun update(shortcut: Shortcut)
+
     @Delete
     suspend fun delete(shortcut: Shortcut)
 }

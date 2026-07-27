@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Keyboard
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +24,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import com.example.service.StarlinkMonitorService
 import com.example.ui.ExpanderScreen
 import com.example.ui.NetworkScreen
+import com.example.ui.SettingsScreen
 import com.example.ui.theme.MyApplicationTheme
 
 class MainActivity : ComponentActivity() {
@@ -93,14 +95,20 @@ fun AppUI(viewModel: MainViewModel) {
                     icon = { Icon(Icons.Default.Keyboard, contentDescription = "الاختصارات") },
                     label = { Text("الاختصارات") }
                 )
+                NavigationBarItem(
+                    selected = selectedTab == 2,
+                    onClick = { selectedTab = 2 },
+                    icon = { Icon(Icons.Default.Settings, contentDescription = "الإعدادات") },
+                    label = { Text("الإعدادات") }
+                )
             }
         }
     ) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (selectedTab == 0) {
-                NetworkScreen(viewModel)
-            } else {
-                ExpanderScreen(viewModel)
+            when (selectedTab) {
+                0 -> NetworkScreen(viewModel)
+                1 -> ExpanderScreen(viewModel)
+                else -> SettingsScreen()
             }
         }
     }

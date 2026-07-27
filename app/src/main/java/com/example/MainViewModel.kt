@@ -201,33 +201,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             PendingIntent.FLAG_UPDATE_CURRENT
         }
-        
-        val intent2 = Intent(context, NotificationReceiver::class.java).apply {
-            action = "ADD_TIME"
-            putExtra("DEVICE_IP", ip)
-            putExtra("HOURS", 2)
-            putExtra("NOTIF_ID", notifId)
-        }
-        val pIntent2 = PendingIntent.getBroadcast(context, 2 + notifId, intent2, flags)
 
-        val intent5 = Intent(context, NotificationReceiver::class.java).apply {
-            action = "ADD_TIME"
-            putExtra("DEVICE_IP", ip)
-            putExtra("HOURS", 5)
-            putExtra("NOTIF_ID", notifId)
-        }
-        val pIntent5 = PendingIntent.getBroadcast(context, 5 + notifId, intent5, flags)
-
-        val notification = NotificationCompat.Builder(context, "starlink_channel")
+        val quickTimes = com.example.util.AppPrefs.getQuickTimes(context).take(3)
+        val notifBuilder = NotificationCompat.Builder(context, "starlink_channel")
             .setSmallIcon(android.R.drawable.ic_menu_info_details)
             .setContentTitle("جهاز جديد متصل!")
             .setContentText("IP: $ip ($name)")
-            .addAction(0, "ساعتين", pIntent2)
-            .addAction(0, "5 ساعات", pIntent5)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .build()
-            
-        try { NotificationManagerCompat.from(context).notify(notifId, notification) } catch (e: Exception) {}
+
+        quickTimes.forEachIndexed { index, h ->
+            val intent = Intent(context, NotificationReceiver::class.java).apply {
+                action = "ADD_TIME"
+                putExtra("DEVICE_IP", ip)
+                putExtra("HOURS", h.toFloat())
+                putExtra("NOTIF_ID", notifId)
+            }
+            val pIntent = PendingIntent.getBroadcast(context, index + 1 + notifId, intent, flags)
+            notifBuilder.addAction(0, com.example.util.AppPrefs.formatHoursLabel(h), pIntent)
+        }
+
+        try { NotificationManagerCompat.from(context).notify(notifId, notifBuilder.build()) } catch (e: Exception) {}
+
+        // إشعار عائم فوق أي تطبيق (لو مفعّل والإذن موجود)
+        com.example.util.OverlayHelper.showNewDeviceOverlay(context, ip, name)
     }
 
     private fun sendTimeUpNotification(context: Context, ip: String, name: String) {
@@ -241,9 +237,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         try { NotificationManagerCompat.from(context).notify(ip.hashCode() + 100, notification) } catch (e: Exception) {}
     }
 
-    fun addDeviceTime(device: Device, hours: Int) {
+    fun addDeviceTime(device: Device, hours: Double) {
         viewModelScope.launch(Dispatchers.IO) {
-            val additionalMillis = hours * 3600000L
+            val additionalMillis = (hours * 3600000.0).toLong()
             val newEndTime = if (device.isPaused) {
                 System.currentTimeMillis() + device.remainingWhenPaused + additionalMillis
             } else {
@@ -278,6 +274,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun saveShortcut(keyword: String, phrase: String) {
         viewModelScope.launch(Dispatchers.IO) {
             db.shortcutDao().insert(Shortcut(keyword = keyword, phrase = phrase))
+        }
+    }
+
+    fun updateShortcut(shortcut: Shortcut, newKeyword: String, newPhrase: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            db.shortcutDao().update(shortcut.copy(keyword = newKeyword, phrase = newPhrase))
         }
     }
 

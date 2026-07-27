@@ -95,6 +95,20 @@ fun ExpanderScreen(viewModel: MainViewModel) {
 @Composable
 fun ShortcutCard(shortcut: Shortcut, viewModel: MainViewModel) {
     val context = LocalContext.current
+    var showEditDialog by remember { mutableStateOf(false) }
+
+    if (showEditDialog) {
+        AddShortcutDialog(
+            initialKeyword = shortcut.keyword,
+            initialPhrase = shortcut.phrase,
+            onDismiss = { showEditDialog = false },
+            onSave = { k, p ->
+                viewModel.updateShortcut(shortcut, k, p)
+                showEditDialog = false
+            }
+        )
+    }
+
     Card(modifier = Modifier.fillMaxWidth(), elevation = CardDefaults.cardElevation(2.dp)) {
         Row(
             modifier = Modifier.padding(16.dp).fillMaxWidth(),
@@ -106,6 +120,9 @@ fun ShortcutCard(shortcut: Shortcut, viewModel: MainViewModel) {
                 Text(shortcut.phrase, fontSize = 14.sp)
             }
             Row {
+                IconButton(onClick = { showEditDialog = true }) {
+                    Icon(Icons.Default.Edit, contentDescription = "تعديل")
+                }
                 IconButton(onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText("shortcut", shortcut.phrase))
@@ -121,9 +138,14 @@ fun ShortcutCard(shortcut: Shortcut, viewModel: MainViewModel) {
 }
 
 @Composable
-fun AddShortcutDialog(onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
-    var keyword by remember { mutableStateOf("") }
-    var phrase by remember { mutableStateOf("") }
+fun AddShortcutDialog(
+    initialKeyword: String = "",
+    initialPhrase: String = "",
+    onDismiss: () -> Unit,
+    onSave: (String, String) -> Unit
+) {
+    var keyword by remember { mutableStateOf(initialKeyword) }
+    var phrase by remember { mutableStateOf(initialPhrase) }
     var showTimeDialog by remember { mutableStateOf(false) }
 
     if (showTimeDialog) {
@@ -139,7 +161,7 @@ fun AddShortcutDialog(onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("إضافة اختصار جديد") },
+        title = { Text(if (initialKeyword.isEmpty()) "إضافة اختصار جديد" else "تعديل الاختصار") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
