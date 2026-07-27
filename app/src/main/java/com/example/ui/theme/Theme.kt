@@ -11,23 +11,38 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme =
-  darkColorScheme(primary = Purple80, secondary = PurpleGrey80, tertiary = Pink80)
+  darkColorScheme(
+    primary = PrimaryBlueDark,
+    onPrimary = OnPrimaryBlueDark,
+    primaryContainer = PrimaryContainerBlueDark,
+    onPrimaryContainer = OnPrimaryContainerBlueDark,
+    secondary = SecondaryCyanDark,
+    onSecondary = OnSecondaryCyanDark,
+    secondaryContainer = SecondaryContainerCyanDark,
+    onSecondaryContainer = OnSecondaryContainerCyanDark,
+    tertiary = TertiaryTealDark,
+    onTertiary = OnTertiaryTealDark,
+    tertiaryContainer = TertiaryContainerTealDark,
+    onTertiaryContainer = OnTertiaryContainerTealDark
+  )
 
 private val LightColorScheme =
   lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = PrimaryBlue,
+    onPrimary = OnPrimaryBlue,
+    primaryContainer = PrimaryContainerBlue,
+    onPrimaryContainer = OnPrimaryContainerBlue,
+    secondary = SecondaryCyan,
+    onSecondary = OnSecondaryCyan,
+    secondaryContainer = SecondaryContainerCyan,
+    onSecondaryContainer = OnSecondaryContainerCyan,
+    tertiary = TertiaryTeal,
+    onTertiary = OnTertiaryTeal,
+    tertiaryContainer = TertiaryContainerTeal,
+    onTertiaryContainer = OnTertiaryContainerTeal,
+    surface = SurfaceLight,
+    surfaceContainer = SurfaceContainerLight,
+    surfaceContainerHigh = SurfaceContainerHighLight
   )
 
 @Composable
