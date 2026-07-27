@@ -5,9 +5,8 @@ import android.os.Bundle
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.example.db.AppDatabase
+import com.example.util.ShortcutFormatter
 import kotlinx.coroutines.*
-import java.text.SimpleDateFormat
-import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
 class TextExpanderService : AccessibilityService() {
@@ -96,26 +95,7 @@ class TextExpanderService : AccessibilityService() {
     }
 
     private fun processPhrase(phrase: String): String {
-        var result = phrase
-        val cal = Calendar.getInstance()
-        
-        // Process %date%
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale("ar"))
-        result = result.replace("%date%", dateFormat.format(cal.time))
-        
-        // Process %day%
-        val dayFormat = SimpleDateFormat("EEEE", Locale("ar"))
-        result = result.replace("%day%", dayFormat.format(cal.time))
-
-        // Process %time% and %time+Xh%
-        val regex = Regex("%time(?:\\+(\\d+)h)?%")
-        return regex.replace(result) { match ->
-            val hoursToAdd = match.groups[1]?.value?.toIntOrNull() ?: 0
-            val timeCal = Calendar.getInstance()
-            timeCal.add(Calendar.HOUR_OF_DAY, hoursToAdd)
-            val sdf = SimpleDateFormat("hh:mm a", Locale("ar"))
-            sdf.format(timeCal.time)
-        }
+        return ShortcutFormatter.applyTokens(phrase)
     }
 
     private fun Boolean?.orFalse(): Boolean = this == true
